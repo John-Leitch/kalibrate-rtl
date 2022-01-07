@@ -72,6 +72,7 @@
 
 int g_verbosity = 0;
 int g_debug = 0;
+int g_e4000_offset_tuning = 0;
 
 void usage(char *prog) {
 
@@ -91,6 +92,7 @@ void usage(char *prog) {
 	printf("\t-b\tband indicator (GSM850, GSM-R, GSM900, EGSM, DCS, PCS)\n");
 	printf("\t-g\tgain in dB\n");
 	printf("\t-d\trtl-sdr device index\n");
+	printf("\t-o\tE4000 offset tuning\n");
 	printf("\t-e\tinitial frequency error in ppm\n");
 #if HAVE_DITHERING == 1
 	printf("\t-N\tdisable dithering (default: dithering enabled)\n");
@@ -109,13 +111,14 @@ int main(int argc, char **argv) {
 	int c, antenna = 1, bi = BI_NOT_DEFINED, chan = -1, bts_scan = 0;
 	int ppm_error = 0, hz_adjust = 0;
 	int dithering = true;
+	int result;
 	unsigned int subdev = 0, decimation = 192;
 	long int fpga_master_clock_freq = 52000000;
 	float gain = 0;
 	double freq = -1.0, fd;
 	usrp_source *u;
 
-	while((c = getopt(argc, argv, "f:c:s:b:R:A:g:e:E:Nd:vDh?")) != EOF) {
+	while((c = getopt(argc, argv, "f:c:s:b:R:A:g:e:E:Nd:ovDh?")) != EOF) {
 		switch(c) {
 			case 'f':
 				freq = strtod(optarg, 0);
@@ -215,6 +218,10 @@ int main(int argc, char **argv) {
 				g_debug = 1;
 				break;
 
+			case 'o':
+				g_e4000_offset_tuning = 1;
+				break;
+
 			case 'h':
 			case '?':
 			default:
@@ -267,6 +274,7 @@ int main(int argc, char **argv) {
 		printf("debug: RX Subdev Spec        :\t%s\n", subdev? "B" : "A");
 		printf("debug: Antenna               :\t%s\n", antenna? "RX2" : "TX/RX");
 		printf("debug: Gain                  :\t%f\n", gain);
+		printf("debug: Offset Tuning         :\t%s\n", g_e4000_offset_tuning ? "Enabled" : "Disabled");
 	}
 
 	u = new usrp_source(decimation, fpga_master_clock_freq);
@@ -277,6 +285,13 @@ int main(int argc, char **argv) {
 	if(u->open(subdev) == -1) {
 		fprintf(stderr, "error: usrp_source::open\n");
 		return -1;
+	}
+
+	if (g_e4000_offset_tuning) {
+		if ((result = u->set_offset_tuning(true)) != 0) {
+			fprintf(stderr, "error: usrp_source::set_offset_tuning returned %d\n", result);
+			return -1;
+		}
 	}
 
 	/* Enable/disable dithering */

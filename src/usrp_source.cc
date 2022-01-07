@@ -163,6 +163,10 @@ bool usrp_source::set_dithering(bool enable) {
 #endif
 }
 
+int usrp_source::set_offset_tuning(bool enable) {
+	return rtlsdr_set_offset_tuning(dev, enable ? 1 : 0);
+}
+
 bool usrp_source::set_gain(float gain) {
 	int r, g = gain * 10;
 
